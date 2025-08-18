@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/narab/OneDrive/sokaramy/Rayan/Side%20Projects/cardiology_assistant/mlruns/0/8f767d503d2d43518d57592cfa8df27d/artifacts
+end_time: 1755134214560
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 8f767d503d2d43518d57592cfa8df27d
+run_name: capable-auk-759
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1755132991930
+status: 3
+tags: []
+user_id: narab
