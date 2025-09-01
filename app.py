@@ -9,14 +9,14 @@ from queue import Queue, Empty
 import json
 import hashlib
 
-# Configure logging
+#Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
 
-# Configuration
+#Configuration
 MODEL_NAME = "rayanahsan/Llama-2-7b-chat-finetune"
 
 class CardiologyAssistant:
@@ -26,8 +26,8 @@ class CardiologyAssistant:
         self.pipe = None
         self.is_loaded = False
         self.is_busy = False
-        self.request_queue = Queue(maxsize=5)  # Handle up to 5 queued requests
-        self.response_cache = {}  # Simple caching
+        self.request_queue = Queue(maxsize=5)  #Handle up to 5 queued requests
+        self.response_cache = {}  #Simple caching
         self.stats = {
             'total_requests': 0,
             'avg_response_time': 0,
@@ -37,29 +37,29 @@ class CardiologyAssistant:
     def load_model(self):
         """Load and optimize the model"""
         try:
-            logger.info("🔄 Loading Cardiology AI Assistant...")
+            logger.info("Loading Cardiology AI Assistant...")
             
-            # Load tokenizer
-            logger.info("📝 Loading tokenizer...")
+            #Load tokenizer
+            logger.info("Loading tokenizer...")
             self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
             
-            # Load model with CPU optimizations
-            logger.info("🧠 Loading model (this may take 5-10 minutes)...")
+            #Load model with CPU optimizations
+            logger.info("Loading model (this may take 5-10 minutes)...")
             self.model = AutoModelForCausalLM.from_pretrained(
                 MODEL_NAME,
                 device_map="cpu",
-                torch_dtype=torch.float32,  # More stable on CPU
+                torch_dtype=torch.float32,  #More stable on CPU
                 low_cpu_mem_usage=True,
                 use_cache=True
             )
             
-            # Set to evaluation mode
+            #Set to evaluation mode
             self.model.eval()
             
-            # Create pipeline
-            logger.info("⚙️ Creating inference pipeline...")
+            #Create pipeline
+            logger.info("Creating inference pipeline...")
             self.pipe = pipeline(
                 "text-generation",
                 model=self.model,
@@ -69,10 +69,10 @@ class CardiologyAssistant:
             )
             
             self.is_loaded = True
-            logger.info("✅ Model loaded successfully! Ready to answer questions.")
+            logger.info("Model loaded successfully! Ready to answer questions.")
             
         except Exception as e:
-            logger.error(f"❌ Failed to load model: {e}")
+            logger.error(f"Failed to load model: {e}")
             raise e
     
     def get_cache_key(self, question):
@@ -96,7 +96,7 @@ class CardiologyAssistant:
             'response_time': response_time
         }
         
-        # Limit cache size
+        #Limit cache size
         if len(self.response_cache) > 100:
             oldest_key = min(self.response_cache.keys(), 
                            key=lambda k: self.response_cache[k]['cached_at'])
@@ -105,28 +105,28 @@ class CardiologyAssistant:
     def generate_response(self, question):
         """Generate response with optimizations"""
         if not self.is_loaded:
-            return "❌ Model is still loading. Please wait a few minutes.", False, 0
+            return "Model is still loading. Please wait a few minutes.", False, 0
         
-        # Check cache first
+        #Check cache first
         cached = self.get_cached_response(question)
         if cached:
-            logger.info(f"📋 Cache hit for question: {question[:50]}...")
-            return f"⚡ {cached['answer']}", True, cached['response_time']
+            logger.info(f"Cache hit for question: {question[:50]}...")
+            return f"{cached['answer']}", True, cached['response_time']
         
         try:
             start_time = time.time()
             self.is_busy = True
             
-            # Format question
+            #Format question
             prompt = f"<s>[INST] {question} [/INST]"
             
-            logger.info(f"🤔 Processing: {question[:50]}...")
+            logger.info(f"Processing: {question[:50]}...")
             
-            # Generate response
+            #Generate response
             with torch.no_grad():
                 output = self.pipe(
                     prompt,
-                    max_new_tokens=100,  # Balanced length
+                    max_new_tokens=100,  #Balanced length
                     temperature=0.7,
                     top_p=0.9,
                     do_sample=True,
@@ -135,7 +135,7 @@ class CardiologyAssistant:
                     eos_token_id=self.tokenizer.eos_token_id,
                 )
             
-            # Extract answer
+            #Extract answer
             if isinstance(output, list) and len(output) > 0:
                 answer = output[0].get("generated_text", "").strip()
             else:
@@ -148,7 +148,7 @@ class CardiologyAssistant:
             
             response_time = time.time() - start_time
             
-            # Update statistics
+            #Update statistics
             self.stats['total_requests'] += 1
             if self.stats['avg_response_time'] == 0:
                 self.stats['avg_response_time'] = response_time
@@ -158,19 +158,19 @@ class CardiologyAssistant:
                     / self.stats['total_requests']
                 )
             
-            # Cache the response
+            #Cache the response
             self.cache_response(question, answer, response_time)
             
-            logger.info(f"✅ Response generated in {response_time:.1f}s")
+            logger.info(f"Response generated in {response_time:.1f}s")
             return answer, True, response_time
             
         except Exception as e:
-            logger.error(f"❌ Error generating response: {e}")
+            logger.error(f"Error generating response: {e}")
             return f"Sorry, I encountered an error: {str(e)}", False, 0
         finally:
             self.is_busy = False
 
-# Global assistant instance
+#Global assistant instance
 assistant = CardiologyAssistant()
 
 @app.route('/')
@@ -181,7 +181,7 @@ def home():
     except:
         return """
         <div style="font-family: Arial; padding: 40px; text-align: center;">
-            <h1>🫀 Cardiology AI Assistant</h1>
+            <h1>Cardiology AI Assistant</h1>
             <h2>Backend is Running!</h2>
             <p>Create <code>templates/index.html</code> with the frontend to use the web interface.</p>
             <p><strong>API Endpoints:</strong></p>
@@ -197,8 +197,8 @@ def home():
             </div>
         </div>
         """.format(
-            "✅ Yes" if assistant.is_loaded else "⏳ Loading...",
-            "🔄 Yes" if assistant.is_busy else "🟢 Ready"
+            "Yes" if assistant.is_loaded else "Loading...",
+            "Yes" if assistant.is_busy else "Ready"
         )
 
 @app.route('/api/ask', methods=['POST'])
@@ -216,14 +216,14 @@ def api_ask():
                 'error': 'Please keep questions under 200 characters for optimal performance'
             }), 400
         
-        # Check if model is still loading
+        #Check if model is still loading
         if not assistant.is_loaded:
             return jsonify({
                 'error': 'Model is still loading. Please wait a few minutes and try again.',
                 'status': 'loading'
             }), 503
         
-        # Check if currently processing another request
+        #Check if currently processing another request
         if assistant.is_busy:
             return jsonify({
                 'error': 'Currently processing another request. Please wait a moment.',
@@ -231,7 +231,7 @@ def api_ask():
                 'tip': 'Try asking a different question or wait 30-60 seconds'
             }), 429
         
-        # Generate response
+        #Generate response
         answer, success, response_time = assistant.generate_response(question)
         
         if success:
@@ -240,7 +240,7 @@ def api_ask():
                 'answer': answer,
                 'response_time': round(response_time, 1),
                 'status': 'success',
-                'cached': '⚡' in answer  # Indicates if response was cached
+                'cached': False  #No emoji cache marker
             })
         else:
             return jsonify({
